@@ -1,6 +1,6 @@
 {
   "name": "@clawhelp/fmlhealth-cli",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "一家检 - 家庭健康管理命令行工具",
   "bin": {
     "fmlhealth-cli": "./bin/fmlhealth-cli.js"
