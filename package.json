@@ -1,0 +1,22 @@
+{
+  "name": "@clawhelp/fmlhealth-cli",
+  "version": "1.0.0",
+  "description": "一家检 - 家庭健康管理命令行工具",
+  "bin": {
+    "fmlhealth-cli": "./bin/fmlhealth-cli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clawhelp/fmlhealth-cli.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "bin/",
+    "SKILL.md"
+  ],
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
