@@ -11,7 +11,7 @@
  *   fmlhealth-cli trend <name> <indicator>      — 趋势分析
  *   fmlhealth-cli checkin [name]                — 打卡状态
  *   fmlhealth-cli analyze <name>                — 健康分析
- *   fmlhealth-cli auth login                    — 授权登录
+   *   fmlhealth-cli auth login                    — 授权登录（支付宝/微信）
  *   fmlhealth-cli +me                           — 查看当前登录身份
  */
 
@@ -195,11 +195,14 @@ const commands = {
   auth: async (action) => {
     if (action === 'login') {
       const r = await request('POST', '/auth/oauth/cli-session', {});
-      const { url, session_code } = r.body || {};
-      if (!url) { console.log(JSON.stringify({ error: '获取授权链接失败' })); process.exit(1); }
-      console.log('\n请用支付宝扫码登录：');
-      console.log('  ' + url + '\n');
-      console.log('等待授权...');
+      const { session_code, alipay_url, wechat_url } = r.body || {};
+      if (!alipay_url) { console.log(JSON.stringify({ error: '获取授权链接失败' })); process.exit(1); }
+      console.log('\n请选择登录方式：');
+      console.log('  [1] 支付宝扫码登录');
+      console.log('  [2] 微信扫码登录\n');
+      console.log('  支付宝: ' + alipay_url);
+      if (wechat_url) console.log('  微信:   ' + wechat_url);
+      console.log('\n等待授权...');
       // 轮询等待授权完成
       const poll = () => {
         const req = http.get('https://www.fmlhealth.cn/api/auth/oauth/cli-token?s=' + session_code, (res) => {
