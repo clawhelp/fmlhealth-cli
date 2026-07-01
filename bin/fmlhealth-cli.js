@@ -48,9 +48,9 @@ function getToken() {
   return null;
 }
 
-function request(method, path, body) {
+function request(method, path, body, customToken) {
   return new Promise((resolve, reject) => {
-    const token = getToken();
+    const token = customToken || getToken();
     const options = {
       hostname: 'www.fmlhealth.cn',
       port: 443,
@@ -194,15 +194,34 @@ const commands = {
   },
   auth: async (action) => {
     if (action === 'login') {
-      const r = await request('POST', '/auth/oauth/cli-session', {});
+      // 询问用户操作意图
+      const readline = require('readline');
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const ask = (q) => new Promise(r => rl.question(q, r));
+
+      const choice = await ask('\n首次使用请创建新账号，已有账号可关联登录。\n  [1] 创建新账号\n  [2] 关联已有账号\n请选择 [1]: ');
+      rl.close();
+
+      let linkToken = null;
+      if (choice.trim() === '2') {
+        const username = await ask('用户名: ');
+        const password = await ask('密码: ');
+        const loginRes = await request('POST', '/auth/login', { username, password });
+        if (loginRes.status !== 200) {
+          console.log(JSON.stringify({ error: loginRes.body?.error || '登录失败' }));
+          process.exit(1);
+        }
+        linkToken = loginRes.body.token;
+        console.log('已登录，请继续扫码授权关联...\n');
+      }
+
+      const r = await request('POST', '/auth/oauth/cli-session', {}, linkToken);
       const { session_code, alipay_url, wechat_url } = r.body || {};
       if (!alipay_url) { console.log(JSON.stringify({ error: '获取授权链接失败' })); process.exit(1); }
-      console.log('\n请选择登录方式：');
-      console.log('  [1] 支付宝扫码登录');
-      console.log('  [2] 微信扫码登录\n');
-      console.log('  支付宝: ' + alipay_url);
-      if (wechat_url) console.log('  微信:   ' + wechat_url);
-      console.log('\n等待授权...');
+      console.log('\n请选择以下任一方式在浏览器中打开：');
+      console.log('  [支付宝] ' + alipay_url);
+      if (wechat_url) console.log('  [微信]   ' + wechat_url);
+      console.log('\n扫码授权后会自动完成，请稍候...');
       // 轮询等待授权完成
       const poll = () => {
         const req = http.get('https://www.fmlhealth.cn/api/auth/oauth/cli-token?s=' + session_code, (res) => {
@@ -215,6 +234,9 @@ const commands = {
                 saveToken(data.token);
                 console.log('✅ 授权成功！');
                 process.exit(0);
+              } else if (data.status === 'error') {
+                console.log(JSON.stringify({ error: data.message || '授权失败' }));
+                process.exit(1);
               } else if (data.status === 'expired') {
                 console.log(JSON.stringify({ error: '授权已过期，请重新执行 fmlhealth-cli auth login' }));
                 process.exit(1);
